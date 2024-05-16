@@ -5,13 +5,19 @@ using MvcMovie.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
 builder.Services.AddDbContext<MvcMovieContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("MvcMovieContext")));
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
+builder.Services.AddControllers().AddControllersAsServices();
+
+
 var app = builder.Build();
+
+
 
 using (var scope = app.Services.CreateScope())
 {

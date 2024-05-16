@@ -2,10 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Humanizer.Localisation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Data.OData.Query.SemanticAst;
 using Microsoft.EntityFrameworkCore;
 using MvcMovie.Data;
+using MvcMovie.Migrations;
 using MvcMovie.Models;
 
 
@@ -15,10 +18,12 @@ namespace MvcMovie.Controllers
     public class MoviesController : Controller
     {
         private readonly MvcMovieContext _context;
+        private readonly IWebHostEnvironment hostingenvironment;
 
-        public MoviesController(MvcMovieContext context)
+        public MoviesController(MvcMovieContext context, IWebHostEnvironment host)
         {
             _context = context;
+             hostingenvironment = host;
         }
 
         // GET: Movies
@@ -47,6 +52,7 @@ namespace MvcMovie.Controllers
                 Movies = await movies.ToListAsync()
             };
 
+
             return View(movieGenreVM);
         }
 
@@ -66,13 +72,70 @@ namespace MvcMovie.Controllers
                 return NotFound();
             }
 
+          
             return View(movie);
         }
+
+     
 
         // GET: Movies/Create
         public IActionResult Create()
         {
-            return View();
+            List<string> Mgenre = new List<string>()
+                {
+                    "Action",
+                    "Animation",
+                    "Comedy",
+                    "Crime",
+                    "Drama",
+                    "Fantasy",
+                    "Historical",
+                    "Horror",
+                    "Romance",
+                    "Science",
+                    "Thriller",
+                    "Western",
+                    "Other"
+                };
+            List<string> MRate = new List<string>()
+            {
+                "G",
+                "PG",
+                "PG-13",
+                "R",
+                "NC-17"
+            };
+            MovieViewModel viewModel = new MovieViewModel();
+            viewModel.MovieRate = new List<SelectListItem>();
+            viewModel.GenreMovies = new List<SelectListItem>();
+            List<SelectListItem> selectListItem = new List<SelectListItem>();
+            List<SelectListItem> selectListItem1 = new List<SelectListItem>();
+
+            foreach (var genre in Mgenre)
+            {
+                var selectItem = new SelectListItem {
+                Text = genre,
+                Value = genre
+
+                };
+                selectListItem.Add(selectItem);
+
+            }
+            viewModel.GenreMovies = selectListItem;
+
+            foreach (var rate in MRate)
+            {
+                var selectItem1 = new SelectListItem
+                {
+                    Text = rate,
+                    Value = rate
+
+                };
+                selectListItem1.Add(selectItem1);
+
+            }
+            viewModel.MovieRate = selectListItem1;
+            return View(viewModel);
         }
 
         // POST: Movies/Create
@@ -80,15 +143,39 @@ namespace MvcMovie.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Title,ReleaseDate,Genre,Price,Rating")] Movie movie)
+        public async Task<IActionResult> Create(MovieViewModel movie1)
         {
+           
             if (ModelState.IsValid)
             {
-                _context.Add(movie);
+                if (movie1.FileFrame != null)
+                {
+                    string folder = "Photos/Movie/";
+                    string UploadPath= Path.Combine(hostingenvironment.WebRootPath, folder);
+                    string filename = Guid.NewGuid().ToString() + "_" + movie1.FileFrame.FileName;
+                    string filepath = Path.Combine(UploadPath, filename);
+                    movie1.FileFrame.CopyTo(new FileStream(filepath, FileMode.Create));
+                    movie1.pathFile = "/" + folder + filename;
+                } 
+             
+
+                Movie movie = new Movie
+                {
+                    Title = movie1.Title,
+                    ReleaseDate = movie1.ReleaseDate,
+                    Genre = movie1.Genre,
+                    Price = movie1.Price,
+                    Rating = movie1.Rating,
+                    pathFile = movie1.pathFile
+                };
+
+                _context.Movie.Add(movie);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
+                
             }
-            return View(movie);
+            
+            return View();
         }
 
         // GET: Movies/Edit/5
@@ -103,8 +190,79 @@ namespace MvcMovie.Controllers
             if (movie == null)
             {
                 return NotFound();
+
             }
-            return View(movie);
+
+
+            List<string> Mgenre = new List<string>()
+                {
+                    "Action",
+                    "Animation",
+                    "Comedy",
+                    "Crime",
+                    "Drama",
+                    "Fantasy",
+                    "Historical",
+                    "Horror",
+                    "Romance",
+                    "Science",
+                    "Thriller",
+                    "Western",
+                    "Other"
+                };
+
+            List<string> MRate = new List<string>()
+            {
+                "G",
+                "PG",
+                "PG-13",
+                "R",
+                "NC-17"
+            };
+
+            MovieViewModel movie1 = new MovieViewModel();
+            movie1.MovieRate = new List<SelectListItem>();
+            movie1.GenreMovies = new List<SelectListItem>();
+            List<SelectListItem> selectListItem = new List<SelectListItem>();
+            List<SelectListItem> selectListItem1 = new List<SelectListItem>();
+
+            foreach (var genre in Mgenre)
+            {
+                var selectItem = new SelectListItem
+                {
+                    Text = genre,
+                    Value = genre
+
+                };
+                selectListItem.Add(selectItem);
+
+            }
+            foreach (var rate in MRate)
+            {
+                var selectItem1 = new SelectListItem
+                {
+                    Text = rate,
+                    Value = rate
+
+                };
+                selectListItem1.Add(selectItem1);
+
+            }
+
+         
+           
+                movie1.GenreMovies = selectListItem;
+                movie1.MovieRate = selectListItem1;
+                movie1.Title = movie.Title;
+                movie1.ReleaseDate = movie.ReleaseDate;
+                movie1.Genre = movie.Genre;
+                movie1.Price = movie.Price;
+                movie1.Rating = movie.Rating;
+                movie1.pathFile = movie.pathFile;
+           
+
+                return View(movie1);
+            
         }
 
         // POST: Movies/Edit/5
@@ -112,18 +270,51 @@ namespace MvcMovie.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,ReleaseDate,Genre,Price,Rating")] Movie movie)
+        public async Task<IActionResult> Edit(int id, MovieViewModel movie1)
         {
-            if (id != movie.Id)
+
+            if (id != movie1.Id)
             {
                 return NotFound();
             }
+         
+          
 
             if (ModelState.IsValid)
             {
+                var movie = await _context.Movie.FindAsync(id);
+
+                if (movie == null)
+                {
+                    return BadRequest();
+
+                }
+                if (movie1.FileFrame != null)
+                {
+                    string folder = "Photos/Movie/";
+                    string UploadPath = Path.Combine(hostingenvironment.WebRootPath, folder);
+                    string filename = Guid.NewGuid().ToString() + "_" + movie1.FileFrame.FileName;
+                    string filepath = Path.Combine(UploadPath, filename);
+                    movie1.FileFrame.CopyTo(new FileStream(filepath, FileMode.Create));
+                    movie1.pathFile = "/" + folder + filename;
+
+                }
+
+                movie.Title = movie1.Title;
+                movie.ReleaseDate = movie1.ReleaseDate;
+                movie.Genre = movie1.Genre;
+                movie.Price = movie1.Price;
+                movie.Rating = movie1.Rating;
+                
+
+                if (movie1.pathFile != null)
+                {
+                    movie.pathFile = movie1.pathFile;
+                }
+               
                 try
                 {
-                    _context.Update(movie);
+                    _context.Movie.Update(movie);
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
@@ -139,7 +330,7 @@ namespace MvcMovie.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            return View(movie);
+            return View(movie1);
         }
 
         // GET: Movies/Delete/5

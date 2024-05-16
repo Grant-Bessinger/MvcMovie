@@ -1,8 +1,32 @@
-﻿@{
+﻿@model MvcMovie.Models.MovieGenreViewModel
+
+@{
     ViewData["Title"] = "Home Page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+
+
+<div class="row">
+    @foreach (var item in Model.Movies)
+    {
+
+         <div class="col-md-4">
+
+            <div class="card-body">
+
+                
+                    <p class="card-text"> <a asp-action="Details" asp-route-id="@item.Id"><img class="MoviePoster" src="@Html.DisplayFor(modelItem => item.pathFile)" /></a> | </p>
+              
+               
+            <div class="card bg-black" style="width: 200px; height:130px;">
+                    <h5 class="card-title text-warning link-hover " style=" overflow: hidden; white-space: nowrap; text-overflow: ellipsis;" title="@Html.DisplayFor(modelItem => item.Title)">
+                        @Html.DisplayFor(modelItem => item.Title)
+                    </h5>
+                    <p class="card-text text-warning link-hover link-opacity-25"> @Html.DisplayFor(modelItem => item.ReleaseDate) @Html.DisplayFor(modelItem => item.Genre)</p>
+                </div>
+
+            </div>
+           
+        </div>
+    }
 </div>
